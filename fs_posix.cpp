@@ -29,19 +29,37 @@ static bool matchGameData(const char *path) {
 	return false;
 }
 
-FileSystem::FileSystem(const char *dataPath, const char *savePath)
+struct FileSystem_POSIX: FileSystem {
+
+	const char *_dataPath;
+	const char *_savePath;
+	int _filesCount;
+	char **_filesList;
+
+	FileSystem_POSIX(const char *dataPath, const char *savePath);
+	virtual ~FileSystem_POSIX();
+
+	virtual FILE *openAssetFile(const char *filename);
+	virtual FILE *openSaveFile(const char *filename, bool write);
+	virtual int closeFile(FILE *);
+
+	void addFilePath(const char *path);
+	void listFiles(const char *dir);
+};
+
+FileSystem_POSIX::FileSystem_POSIX(const char *dataPath, const char *savePath)
 	: _dataPath(dataPath), _savePath(savePath), _filesCount(0), _filesList(0) {
 	listFiles(dataPath);
 }
 
-FileSystem::~FileSystem() {
+FileSystem_POSIX::~FileSystem_POSIX() {
 	for (int i = 0; i < _filesCount; ++i) {
 		free(_filesList[i]);
 	}
 	free(_filesList);
 }
 
-FILE *FileSystem::openAssetFile(const char *name) {
+FILE *FileSystem_POSIX::openAssetFile(const char *name) {
 	FILE *fp = 0;
 	for (int i = 0; i < _filesCount; ++i) {
 		const char *p = strrchr(_filesList[i], '/');
@@ -54,19 +72,19 @@ FILE *FileSystem::openAssetFile(const char *name) {
 	return fp;
 }
 
-FILE *FileSystem::openSaveFile(const char *filename, bool write) {
+FILE *FileSystem_POSIX::openSaveFile(const char *filename, bool write) {
 	char path[MAXPATHLEN];
 	snprintf(path, sizeof(path), "%s/%s", _savePath, filename);
 	return fopen(path, write ? "wb" : "rb");
 }
 
-int FileSystem::closeFile(FILE *fp) {
+int FileSystem_POSIX::closeFile(FILE *fp) {
 	const int err = ferror(fp);
 	fclose(fp);
 	return err;
 }
 
-void FileSystem::addFilePath(const char *path) {
+void FileSystem_POSIX::addFilePath(const char *path) {
 	_filesList = (char **)realloc(_filesList, (_filesCount + 1) * sizeof(char *));
 	if (_filesList) {
 		_filesList[_filesCount] = strdup(path);
@@ -74,7 +92,7 @@ void FileSystem::addFilePath(const char *path) {
 	}
 }
 
-void FileSystem::listFiles(const char *dir) {
+void FileSystem_POSIX::listFiles(const char *dir) {
 	DIR *d = opendir(dir);
 	if (d) {
 		dirent *de;
@@ -95,4 +113,8 @@ void FileSystem::listFiles(const char *dir) {
 		}
 		closedir(d);
 	}
+}
+
+struct FileSystem *FileSystem_POSIX_create(const char *dataPath, const char *savePath) {
+	return new FileSystem_POSIX(dataPath, savePath);
 }

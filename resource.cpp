@@ -25,7 +25,7 @@ static const char *_setupDax = "SETUP.DAX";
 
 static const char *_hodDem = "HOD.DEM";
 
-static const char *_prefixes[] = {
+static const char *const _prefixes[] = {
 	"rock",
 	"fort",
 	"pwr1",
@@ -57,7 +57,9 @@ static void closeDat(FileSystem *fs, File *f) {
 
 static int skipBytesAlign(File *f, int len) {
 	const int size = (len + 3) & ~3;
-	f->seek(size, SEEK_CUR);
+	if (size != 0) {
+		f->seek(size, SEEK_CUR);
+	}
 	return size;
 }
 
@@ -897,14 +899,20 @@ void Resource::loadSssData(File *fp, const uint32_t baseOffset) {
 	if (_sssHdr.version == 10 || _sssHdr.version == 12) {
 
 		// _sssPreloadData1
-		fp->seek(_sssHdr.preloadData1Count * 4, SEEK_CUR);
-		bytesRead += _sssHdr.preloadData1Count * 4;
+		if (_sssHdr.preloadData1Count != 0) {
+			fp->seek(_sssHdr.preloadData1Count * 4, SEEK_CUR);
+			bytesRead += _sssHdr.preloadData1Count * 4;
+		}
 		// _sssPreloadData2
-		fp->seek(_sssHdr.preloadData2Count * 4, SEEK_CUR);
-		bytesRead += _sssHdr.preloadData2Count * 4;
+		if (_sssHdr.preloadData2Count != 0) {
+			fp->seek(_sssHdr.preloadData2Count * 4, SEEK_CUR);
+			bytesRead += _sssHdr.preloadData2Count * 4;
+		}
 		// _sssPreloadData3
-		fp->seek(_sssHdr.preloadData3Count * 4, SEEK_CUR);
-		bytesRead += _sssHdr.preloadData3Count * 4;
+		if (_sssHdr.preloadData3Count != 0) {
+			fp->seek(_sssHdr.preloadData3Count * 4, SEEK_CUR);
+			bytesRead += _sssHdr.preloadData3Count * 4;
+		}
 
 		_sssPreload1Table.allocate(_sssHdr.preloadData1Count);
 		const int ptrSize = (_sssHdr.version == 12) ? 2 : 1;
@@ -920,19 +928,25 @@ void Resource::loadSssData(File *fp, const uint32_t baseOffset) {
 		}
 		for (int i = 0; i < _sssHdr.preloadData2Count; ++i) {
 			const int count = fp->readByte();
-			fp->seek(count, SEEK_CUR);
 			debug(kDebug_RESOURCE, "sssPreloadData2 #%d count %d", i, count);
+			if (count != 0) {
+				fp->seek(count, SEEK_CUR);
+			}
 			bytesRead += count + 1;
 		}
 		for (int i = 0; i < _sssHdr.preloadData3Count; ++i) {
 			const int count = fp->readByte();
-			fp->seek(count, SEEK_CUR);
 			debug(kDebug_RESOURCE, "sssPreloadData3 #%d count %d", i, count);
+			if (count != 0) {
+				fp->seek(count, SEEK_CUR);
+			}
 			bytesRead += count + 1;
 		}
 		{
 			const int count = fp->readByte();
-			fp->seek(count, SEEK_CUR);
+			if (count != 0) {
+				fp->seek(count, SEEK_CUR);
+			}
 			bytesRead += count + 1;
 		}
 		// _sssPreloadInfosData = data;
@@ -1038,6 +1052,7 @@ void Resource::loadSssData(File *fp, const uint32_t baseOffset) {
 	}
 
 	// allocate structure but skip read as table is cleared and initialized in clearSoundObjects()
+	assert(_sssHdr.filtersDataCount != 0);
 	static const int kSizeOfSssFilter = 52;
 	fp->seek(_sssHdr.filtersDataCount * kSizeOfSssFilter, SEEK_CUR);
 	_sssFilters.allocate(_sssHdr.filtersDataCount);
@@ -1054,6 +1069,7 @@ void Resource::loadSssData(File *fp, const uint32_t baseOffset) {
 		debug(kDebug_RESOURCE, "sssDataUnk6 #%d/%d unk10 0x%x", i, _sssHdr.banksDataCount);
 	}
 
+	assert(_sssHdr.banksDataCount != 0);
 	const int lutSize = _sssHdr.banksDataCount * sizeof(uint32_t);
 	// allocate structures but skip read as tables are initialized in clearSoundObjects()
 	fp->seek(lutSize * 3 * 3, SEEK_CUR);
@@ -1849,8 +1865,10 @@ void Resource::loadMstData(File *fp) {
 		bytesRead += 4;
 	}
 
-	fp->seek(_mstHdr.unk0x74 * 4, SEEK_CUR); // _mstUnk61
-	bytesRead += _mstHdr.unk0x74 * 4;
+	if (_mstHdr.unk0x74 != 0) {
+		fp->seek(_mstHdr.unk0x74 * 4, SEEK_CUR); // _mstUnk61
+		bytesRead += _mstHdr.unk0x74 * 4;
+	}
 
 	_mstOp204Data.allocate(_mstHdr.op204DataCount);
 	for (int i = 0; i < _mstHdr.op204DataCount; ++i) {

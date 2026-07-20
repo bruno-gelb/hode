@@ -10,6 +10,7 @@
 #include <getopt.h>
 #include <sys/stat.h>
 
+#include "fs.h"
 #include "game.h"
 #include "menu.h"
 #include "mixer.h"
@@ -63,7 +64,7 @@ static const char *_defaultDataPath = ".";
 
 static const char *_defaultSavePath = ".";
 
-static const char *_levelNames[] = {
+static const char *const _levelNames[] = {
 	"rock",
 	"fort",
 	"pwr1",
@@ -77,7 +78,7 @@ static const char *_levelNames[] = {
 };
 
 static bool configBool(const char *value) {
-	return strcasecmp(value, "true") == 0 || (strlen(value) == 2 && (value[0] == 't' || value[0] == '1'));
+	return strcasecmp(value, "true") == 0 || (strlen(value) >= 1 && (value[0] == 't' || value[0] == '1'));
 }
 
 static void handleConfigIni(Game *g, const char *section, const char *name, const char *value) {
@@ -157,6 +158,25 @@ static void readConfigIni(const char *filename, Game *g) {
 	}
 }
 
+static FileSystem *setupFileSystem(const char *dataPath, const char *savePath) {
+	FileSystem *fs = 0;
+#ifdef __ANDROID__
+	fs = FileSystem_Android_create(dataPath, savePath);
+#else
+	struct stat st;
+	if (stat(dataPath, &st) == 0) {
+		if (S_ISDIR(st.st_mode)) {
+			fs = FileSystem_POSIX_create(dataPath, savePath);
+#ifndef _WIN32
+		} else if (S_ISREG(st.st_mode)) {
+			fs = FileSystem_ZipInstaller_create(dataPath, savePath);
+#endif
+		}
+	}
+#endif
+	return fs;
+}
+
 int main(int argc, char *argv[]) {
 	char *dataPath = 0;
 	char *savePath = 0;
@@ -187,7 +207,7 @@ int main(int argc, char *argv[]) {
 		if (argc == 2) {
 			// data path as the only command line argument
 			struct stat st;
-			if (stat(argv[1], &st) == 0 && S_ISDIR(st.st_mode)) {
+			if (stat(argv[1], &st) == 0) {
 				dataPath = strdup(argv[1]);
 			}
 		}
@@ -242,7 +262,12 @@ int main(int argc, char *argv[]) {
 			}
 		}
 	}
-	Game *g = new Game(dataPath ? dataPath : _defaultDataPath, savePath ? savePath : _defaultSavePath, cheats);
+	FileSystem *fs = setupFileSystem(dataPath ? dataPath : _defaultDataPath, savePath ? savePath : _defaultSavePath);
+	if (!fs) {
+		error("Unable to find data files under '%s'", dataPath ? dataPath : _defaultDataPath);
+		return 0;
+	}
+	Game *g = new Game(fs, cheats);
 	readConfigIni(_configIni, g);
 	if (_runBenchmark) {
 		g->benchmarkCpu();
@@ -291,5 +316,6 @@ int main(int argc, char *argv[]) {
 	delete g;
 	free(dataPath);
 	free(savePath);
+	delete fs;
 	return 0;
 }

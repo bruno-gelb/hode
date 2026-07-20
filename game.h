@@ -9,11 +9,11 @@
 #include "intern.h"
 #include "defs.h"
 #include "fileio.h"
-#include "fs.h"
 #include "mixer.h"
 #include "random.h"
 #include "resource.h"
 
+struct FileSystem;
 struct Game;
 struct Level;
 struct PafPlayer;
@@ -84,7 +84,7 @@ struct Game {
 	static const int16_t *_lar_screenMaskOffsets[];
 	static uint8_t _lar1_maskData[];
 
-	FileSystem _fs;
+	FileSystem *_fs;
 	Level *_level;
 	Mixer _mix;
 	PafPlayer *_paf;
@@ -220,7 +220,7 @@ struct Game {
 	int _wormHoleSpritesCount;
 	WormHoleSprite _wormHoleSpritesTable[6];
 
-	Game(const char *dataPath, const char *savePath, uint32_t cheats);
+	Game(FileSystem *fs, uint32_t cheats);
 	~Game();
 
 	// 32*24 pitch=512

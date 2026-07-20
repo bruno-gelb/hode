@@ -10,6 +10,7 @@ enum {
 	kFlagNoCode  = 1 << 2  // no bytecode
 };
 
+// piecewise-linear curve with a knee point at value 90
 // if x < 90, lut[x] ~= x / 2
 // if x > 90, lut[x] ~= 45 + (x - 90) * 2
 static const uint8_t _volumeRampTable[129] = {
@@ -24,10 +25,12 @@ static const uint8_t _volumeRampTable[129] = {
 	0x80
 };
 
+// creates a unique identifier for sound instances
 static uint32_t sssGroupValue(uint8_t source, uint8_t mask, const SssInfo *s) {
 	return (mask << 24) | (source << 20) | ((s->sampleIndex & 15) << 16) | (s->concurrencyMask << 12) | (s->sssBankIndex & 0xFFF);
 }
 
+// compares if two sounds belong to the same group
 static bool compareSssGroup(uint32_t flags_a, uint32_t flags_b) {
 	if (0) {
 		// the x86 code compares the 3 bit fields.
@@ -620,7 +623,7 @@ const uint8_t *Game::executeSssCode(SssObject *so, const uint8_t *code, bool tem
 
 SssObject *Game::addSoundObject(SssPcm *pcm, int priority, uint32_t flags_a, uint32_t flags_b) {
 	int minIndex = -1;
-	int minPriority = -1;
+	int minPriority = 0xFFFF;
 	for (int i = 0; i < kMaxSssObjects; ++i) {
 		if (!_sssObjectsTable[i].pcm) {
 			minPriority = 0;
@@ -734,6 +737,7 @@ void Game::prependSoundObjectToList(SssObject *so) {
 	}
 }
 
+// clears group2 when no instances are playing
 void Game::updateSssGroup2(uint32_t flags) {
 	const uint32_t mask = 1 << (flags >> 24);
 	uint32_t *sssGroupPtr = getSssGroupPtr(_res, 2, flags);

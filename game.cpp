@@ -5,6 +5,7 @@
 
 #include "game.h"
 #include "fileio.h"
+#include "fs.h"
 #include "level.h"
 #include "lzw.h"
 #include "paf.h"
@@ -16,12 +17,12 @@
 // starting level cutscene number
 static const uint8_t _cutscenes[] = { 0, 2, 4, 5, 6, 8, 10, 14, 19 };
 
-Game::Game(const char *dataPath, const char *savePath, uint32_t cheats)
-	: _fs(dataPath, savePath) {
+Game::Game(FileSystem *fs, uint32_t cheats)
+	: _fs(fs) {
 
 	_level = 0;
-	_res = new Resource(&_fs);
-	_paf = new PafPlayer(&_fs);
+	_res = new Resource(_fs);
+	_paf = new PafPlayer(_fs);
 	_rnd.setSeed();
 	_video = new Video();
 	_cheats = cheats;
@@ -1094,7 +1095,7 @@ void Game::setupAndyLvlObject() {
 	ptr->frame = 0;
 	setupLvlObjectBitmap(ptr);
 	AndyLvlObjectData *dataPtr = (AndyLvlObjectData *)getLvlObjectDataPtr(ptr, kObjectDataTypeAndy);
-	dataPtr->unk6 = 0;
+	dataPtr->apneaTimer = 0;
 	if (ptr->spriteNum == 2) {
 		removeLvlObject(ptr);
 	} else {
@@ -2930,12 +2931,12 @@ void Game::lvlObjectType0CallbackBreathBubbles(LvlObject *ptr) {
 
 	const int num = _pwr1_screenTransformLut[_res->_currentScreenResourceNum * 2 + 1];
 	if (!clipBoundingBox(&_screenTransformRects[num], &b)) {
-		++vf->unk6; // apnea counter/time
+		++vf->apneaTimer; // apnea counter/time
 	} else {
-		vf->unk6 = 0;
+		vf->apneaTimer = 0;
 	}
 	b.y1 -= 24;
-	if (vf->unk2 == 0 && !clipBoundingBox(&_screenTransformRects[num], &b)) {
+	if (vf->bubbleTimer == 0 && !clipBoundingBox(&_screenTransformRects[num], &b)) {
 
 		if (addLvlObjectToList3(4)) {
 			_lvlObjectsList3->xPos = b.x1;
@@ -2948,15 +2949,15 @@ void Game::lvlObjectType0CallbackBreathBubbles(LvlObject *ptr) {
 			_lvlObjectsList3->flags1 &= ~0x20;
 		}
 
-		int currentApneaLevel = vf->unk3;
+		int currentApneaLevel = vf->apneaLevel;
 		static const int16_t _pwr1_apneaDuration[] = { 625, 937, 1094, 1250 };
 		int newApneaLevel = 0;
-		while (newApneaLevel < 4 && vf->unk6 >= _pwr1_apneaDuration[newApneaLevel]) {
+		while (newApneaLevel < 4 && vf->apneaTimer >= _pwr1_apneaDuration[newApneaLevel]) {
 			++newApneaLevel;
 		}
-		vf->unk3 = newApneaLevel;
+		vf->apneaLevel = newApneaLevel;
 		static const uint8_t _pwr1_apneaBubble[] = { 22, 20, 18, 16, 14 };
-		vf->unk2 = _pwr1_apneaBubble[newApneaLevel];
+		vf->bubbleTimer = _pwr1_apneaBubble[newApneaLevel];
 		// play Andy animation when apnea level changes
 		switch (currentApneaLevel) {
 		case 2:
@@ -2976,7 +2977,7 @@ void Game::lvlObjectType0CallbackBreathBubbles(LvlObject *ptr) {
 			}
 			break;
 		case 4:
-			if (vf->unk6 >= 1250) {
+			if (vf->apneaTimer >= 1250) {
 				if (_actionDirectionKeyMaskIndex < 160) {
 					_actionDirectionKeyMaskIndex = 160;
 					_actionDirectionKeyMaskCounter = 0;
@@ -3003,8 +3004,8 @@ void Game::lvlObjectType0CallbackBreathBubbles(LvlObject *ptr) {
 			break;
 		}
 	}
-	if (vf->unk2 != 0) {
-		--vf->unk2;
+	if (vf->bubbleTimer != 0) {
+		--vf->bubbleTimer;
 	}
 }
 
@@ -3185,11 +3186,11 @@ int Game::lvlObjectType0Callback(LvlObject *ptr) {
 	AndyLvlObjectData *vf = 0;
 	if (!_hideAndyObjectFlag) {
 		vf = (AndyLvlObjectData *)getLvlObjectDataPtr(ptr, kObjectDataTypeAndy);
-		vf->unk4 = ptr->flags0 & 0x1F;
-		vf->unk5 = (ptr->flags0 >> 5) & 7;
+		vf->spritePos = ptr->flags0 & 0x1F;
+		vf->direction = (ptr->flags0 >> 5) & 7;
 		lvlObjectType0CallbackHelper1();
 		updateAndyObject(ptr);
-		if (vf->unk4 == (ptr->flags0 & 0x1F) && vf->unk4 == 5) {
+		if (vf->spritePos == (ptr->flags0 & 0x1F) && vf->spritePos == 5) {
 			_fallingAndyFlag = true;
 		} else {
 			_fallingAndyFlag = false;
@@ -3227,7 +3228,7 @@ int Game::lvlObjectType0Callback(LvlObject *ptr) {
 		}
 		break;
 	case 2: // pwr1_hod
-		if (!_hideAndyObjectFlag && vf->unk4 == 6) {
+		if (!_hideAndyObjectFlag && vf->spritePos == 6) {
 			lvlObjectType0CallbackBreathBubbles(ptr);
 		}
 		// fall through
@@ -3243,7 +3244,7 @@ int Game::lvlObjectType0Callback(LvlObject *ptr) {
 	}
 	if (!_hideAndyObjectFlag) {
 		assert(vf);
-		vf->unk0 = ptr->actionKeyMask;
+		vf->actionKeyMask = ptr->actionKeyMask;
 	}
 	return _hideAndyObjectFlag;
 }
@@ -4561,26 +4562,26 @@ void Game::captureScreenshot() {
 
 	char name[64];
 	snprintf(name, sizeof(name), "screenshot-%03d.bmp", screenshot);
-	FILE *fp = _fs.openSaveFile(name, true);
+	FILE *fp = _fs->openSaveFile(name, true);
 	if (fp) {
 		saveBMP(fp, _video->_frontLayer, _video->_palette, Video::W, Video::H);
-		_fs.closeFile(fp);
+		_fs->closeFile(fp);
 	}
 	if (_cheats != 0) {
 		snprintf(name, sizeof(name), "screenshot-%03d-background.bmp", screenshot);
-		fp = _fs.openSaveFile(name, true);
+		fp = _fs->openSaveFile(name, true);
 		if (fp) {
 			saveBMP(fp, _video->_backgroundLayer, _video->_palette, Video::W, Video::H);
-			_fs.closeFile(fp);
+			_fs->closeFile(fp);
 		}
 		snprintf(name, sizeof(name), "screenshot-%03d-shadow.bmp", screenshot);
-		fp = _fs.openSaveFile(name, true);
+		fp = _fs->openSaveFile(name, true);
 		if (fp) {
 			saveBMP(fp, _video->_shadowLayer, _video->_palette, Video::W, Video::H);
-			_fs.closeFile(fp);
+			_fs->closeFile(fp);
 		}
 		snprintf(name, sizeof(name), "screenshot-%03d-palette.bmp", screenshot);
-		fp = _fs.openSaveFile(name, true);
+		fp = _fs->openSaveFile(name, true);
 		if (fp) {
 			static const int kPaletteRectSize = 8;
 			uint8_t paletteBuffer[8 * 256 * 8];
@@ -4591,10 +4592,10 @@ void Game::captureScreenshot() {
 				}
 			}
 			saveBMP(fp, paletteBuffer, _video->_palette, 256 * kPaletteRectSize, kPaletteRectSize);
-			_fs.closeFile(fp);
+			_fs->closeFile(fp);
 		}
 		snprintf(name, sizeof(name), "screenshot-%03d-postable.txt", screenshot);
-		fp = _fs.openSaveFile(name, true);
+		fp = _fs->openSaveFile(name, true);
 		if (fp) {
 			for (int y = 0; y < 24; ++y) {
 				for (int x = 0; x < 32; ++x) {
@@ -4602,10 +4603,10 @@ void Game::captureScreenshot() {
 				}
 				fputc('\n', fp);
 			}
-			_fs.closeFile(fp);
+			_fs->closeFile(fp);
 		}
 		snprintf(name, sizeof(name), "screenshot-%03d-mask.txt", screenshot);
-		fp = _fs.openSaveFile(name, true);
+		fp = _fs->openSaveFile(name, true);
 		if (fp) {
 			for (int y = 0; y < 24; ++y) {
 				for (int x = 0; x < 32; ++x) {
@@ -4613,7 +4614,7 @@ void Game::captureScreenshot() {
 				}
 				fputc('\n', fp);
 			}
-			_fs.closeFile(fp);
+			_fs->closeFile(fp);
 		}
 	}
 	++screenshot;

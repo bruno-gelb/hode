@@ -8,7 +8,7 @@
 #include "system.h"
 #include "util.h"
 
-static const char *_filenames[] = {
+static const char *const _filenames[] = {
 	"hod.paf",
 	"hod_demo.paf",
 	"hod_demo2.paf",
@@ -244,23 +244,23 @@ static void pafCopyColorMask(uint8_t mask, uint8_t *dst, uint8_t color) {
 	}
 }
 
-static const char *updateSequences[] = {
-	"",
-	"\x02",
-	"\x05\x07",
-	"\x05",
-	"\x06",
-	"\x05\x07\x05\x07",
-	"\x05\x07\x05",
-	"\x05\x07\x06",
-	"\x05\x05",
-	"\x03",
-	"\x06\x06",
-	"\x02\x04",
-	"\x02\x04\x05\x07",
-	"\x02\x04\x05",
-	"\x02\x04\x06",
-	"\x02\x04\x05\x07\x05\x07"
+static const char *const updateSequences[] = {
+	/* 0x0 */ "",
+	/* 0x1 */ "\x02",
+	/* 0x2 */ "\x05\x07",
+	/* 0x3 */ "\x05",
+	/* 0x4 */ "\x06",
+	/* 0x5 */ "\x05\x07\x05\x07",
+	/* 0x6 */ "\x05\x07\x05",
+	/* 0x7 */ "\x05\x07\x06",
+	/* 0x8 */ "\x05\x05",
+	/* 0x9 */ "\x03",
+	/* 0xa */ "\x06\x06",
+	/* 0xb */ "\x02\x04",
+	/* 0xc */ "\x02\x04\x05\x07",
+	/* 0xd */ "\x02\x04\x05",
+	/* 0xe */ "\x02\x04\x06",
+	/* 0xf */ "\x02\x04\x05\x07\x05\x07"
 };
 
 uint8_t *PafPlayer::getVideoPageOffset(uint16_t val) {

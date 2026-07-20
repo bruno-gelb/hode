@@ -31,6 +31,7 @@ void File::seekAlign(uint32_t pos) {
 }
 
 void File::seek(int pos, int whence) {
+	assert(!(whence == SEEK_CUR && pos == 0));
 	if (kSeekAbsolutePosition && whence == SEEK_CUR) {
 		pos += ftell(_fp);
 		whence = SEEK_SET;
@@ -134,6 +135,7 @@ void SectorFile::seek(int pos, int whence) {
 }
 
 int SectorFile::read(uint8_t *ptr, int size) {
+	const int sizeRequested = size;
 	const int bufLen = 2044 - _bufPos;
 	if (size >= bufLen) {
 		if (bufLen) {
@@ -154,5 +156,5 @@ int SectorFile::read(uint8_t *ptr, int size) {
 		memcpy(ptr, _buf + _bufPos, size);
 		_bufPos += size;
 	}
-	return 0;
+	return sizeRequested - size;
 }

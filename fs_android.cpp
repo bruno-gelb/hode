@@ -66,7 +66,17 @@ FILE *android_fopen(const char *fname, const char *mode) {
 // FileSystem
 //
 
-FileSystem::FileSystem(const char *dataPath, const char *savePath) {
+struct FileSystem_Android: FileSystem {
+
+	FileSystem_Android(const char *dataPath, const char *savePath);
+	virtual ~FileSystem_Android();
+
+	virtual FILE *openAssetFile(const char *filename);
+	virtual FILE *openSaveFile(const char *filename, bool write);
+	virtual int closeFile(FILE *);
+};
+
+FileSystem_Android::FileSystem_Android(const char *dataPath, const char *savePath) {
 	JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
 	jobject activity = (jobject)SDL_AndroidGetActivity();
 
@@ -85,10 +95,10 @@ FileSystem::FileSystem(const char *dataPath, const char *savePath) {
 	__android_log_print(ANDROID_LOG_INFO, LOG_TAG, "dataPath %s _assetManager %p", _dataPath, _assetManager);
 }
 
-FileSystem::~FileSystem() {
+FileSystem_Android::~FileSystem_Android() {
 }
 
-FILE *FileSystem::openAssetFile(const char *filename) {
+FILE *FileSystem_Android::openAssetFile(const char *filename) {
 	char *name = (char *)alloca(strlen(filename) + 1);
 	for (int i = 0; i < strlen(filename) + 1; ++i) {
 		if (filename[i] >= 'A' && filename[i] <= 'Z') {
@@ -102,7 +112,7 @@ FILE *FileSystem::openAssetFile(const char *filename) {
 	return fp;
 }
 
-FILE *FileSystem::openSaveFile(const char *filename, bool write) {
+FILE *FileSystem_Android::openSaveFile(const char *filename, bool write) {
 	FILE *fp = 0;
 	char *prefPath = SDL_GetPrefPath(ANDROID_PACKAGE_NAME, "hode");
 	if (prefPath) {
@@ -114,8 +124,12 @@ FILE *FileSystem::openSaveFile(const char *filename, bool write) {
 	return fp;
 }
 
-int FileSystem::closeFile(FILE *fp) {
+int FileSystem_Android::closeFile(FILE *fp) {
 	const int err = ferror(fp);
 	fclose(fp);
 	return err;
+}
+
+FileSystem *FileSystem_Android_create(const char *dataPath, const char *savePath) {
+	return new FileSystem_Android(dataPath, savePath);
 }

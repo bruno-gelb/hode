@@ -605,9 +605,9 @@ struct Resource {
 	ResStruct<SssFilter> _sssFilters;
 	ResStruct<SssPcm> _sssPcmTable;
 	ResStruct<SssUnk6> _sssDataUnk6;
-	uint32_t *_sssGroup1[3];
-	uint32_t *_sssGroup2[3];
-	uint32_t *_sssGroup3[3];
+	uint32_t *_sssGroup1[3]; // "one-shot" sounds
+	uint32_t *_sssGroup2[3]; // "restartable" sounds
+	uint32_t *_sssGroup3[3]; // "expiring" sounds
 	uint8_t *_sssCodeData;
 
 	ResStruct<MstPointOffset> _mstPointOffsets;
