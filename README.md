@@ -9,6 +9,8 @@ on 2026-07-20, right after its last release, 0.2.9g, so it no longer takes issue
 project open for fixes and builds. The engine is his work; his website for it is
 [cyxdown.free.fr/hode](http://cyxdown.free.fr/hode/).
 
+To contribute, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 The original README follows, converted to Markdown, with its content unchanged.
 
 ## About
