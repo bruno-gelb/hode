@@ -1,5 +1,8 @@
 # hode
 
+**Author:** Gregory Montoir ([cyxx](https://github.com/cyxx))<br>
+**Maintainer of this fork:** Bruno Gelb ([bruno-gelb](https://github.com/bruno-gelb))
+
 Release version: 0.2.9g
 
 ## About this fork
@@ -9,7 +12,9 @@ on 2026-07-20, right after its last release, 0.2.9g, so it no longer takes issue
 project open for fixes and builds. The engine is his work; his website for it is
 [cyxdown.free.fr/hode](http://cyxdown.free.fr/hode/).
 
-To contribute, see [CONTRIBUTING.md](CONTRIBUTING.md).
+Found a bug or have a feature request? Please open an [issue](https://github.com/bruno-gelb/hode/issues) here (not an
+email to Gregory), and I'll try to take care of it. To contribute, see
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 The original README follows, converted to Markdown, with its content unchanged.
 
