@@ -26,5 +26,5 @@ Follow [How to Write a Git Commit Message](https://cbea.ms/git-commit/) by Chris
 
 ## License
 
-hode has no license yet: the original code is © Gregory Montoir, with no license granted. Until that changes, keep
-in mind that contributions go into a project whose own code can't be relicensed by this fork.
+hode has no license: the original code is © Gregory Montoir, all rights reserved, as [LICENSE](LICENSE) explains.
+Until he grants one, keep in mind that contributions go into a project whose code this fork can't relicense.
